@@ -1,7 +1,7 @@
 
 #include <memory>
 
-#include "core/ITelemetrySource.hpp"
+#include "sources/ITelemetrySource.hpp"
 #include "raii/SafeFile.hpp"
 
 class FileTelemetrySourceImpl : public ITelemetrySource{
