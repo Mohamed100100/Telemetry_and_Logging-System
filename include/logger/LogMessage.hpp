@@ -19,7 +19,7 @@ class LogMessage {
                    const std::string& message);
 
         LogMessage(const LogMessage& other) = default;
-        LogMessage & operator =(LogMessage& other) = default;
+        LogMessage & operator =(const LogMessage& other) = default;
         
         LogMessage(LogMessage&& other) = default;
         LogMessage & operator =(LogMessage&& other) = default;

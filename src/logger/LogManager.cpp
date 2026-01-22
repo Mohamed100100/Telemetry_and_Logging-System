@@ -3,6 +3,10 @@
 #include "logger/LogManager.hpp"
 
 
+
+LogManager::LogManager(size_t LogBufferCapacity):LogMessagesBuffer{LogBufferCapacity}{}
+
+
 void LogManager::addSink(ILogSink *SinkPtr){
     SinksBuffer.push_back(std::unique_ptr<ILogSink>(SinkPtr));
 }
@@ -17,9 +21,9 @@ void LogManager::log(const LogMessage &log_message){
     LogMessagesBuffer.push_back(std::move(log_message));
 }
 void LogManager::flush(){
-    for(auto& log_message : LogMessagesBuffer){
+    for (size_t i = 0; i < LogMessagesBuffer.size(); i++) {
         for(auto& sink_ptr : SinksBuffer){
-            sink_ptr->write(log_message);
+            sink_ptr->write(LogMessagesBuffer[i]);
         }
     }
     LogMessagesBuffer.clear();
