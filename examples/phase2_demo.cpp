@@ -3,8 +3,8 @@
  * @brief Simple Phase 2 test using FileTelemetrySourceImpl and SocketTelemetrySourceImpl
  */
 
-#include "core/LogMessage.hpp"
-#include "core/LogManager.hpp"
+#include "logger/LogMessage.hpp"
+#include "logger/LogManager.hpp"
 #include "sinks/ConsoleSinkImpl.hpp"
 #include "sinks/FileSinkImpl.hpp"
 #include "sources/FileTelemetrySourceImpl.hpp"
