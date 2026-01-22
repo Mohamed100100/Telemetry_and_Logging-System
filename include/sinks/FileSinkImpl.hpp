@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "core/ILogSink.hpp"
+#include "logger/LogMessage.hpp"
+#include "sinks/ILogSink.hpp"
+
 
 class FileSinkImpl : public ILogSink{
     private:
@@ -17,7 +19,7 @@ class FileSinkImpl : public ILogSink{
         FileSinkImpl & operator =(const FileSinkImpl& other) = delete;
         FileSinkImpl & operator =(FileSinkImpl && other) = default;
 
-        virtual void write(LogMessage log_message);
+        virtual void write(const LogMessage &log_message);
 
         virtual ~FileSinkImpl() = default;
 };
