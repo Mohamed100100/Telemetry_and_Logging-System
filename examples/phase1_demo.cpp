@@ -1,9 +1,5 @@
-
-
-
-
-#include "core/LogMessage.hpp"
-#include "core/LogManager.hpp"
+#include "logger/LogMessage.hpp"
+#include "logger/LogManager.hpp"
 #include "sinks/ConsoleSinkImpl.hpp"
 #include "sinks/FileSinkImpl.hpp"
 #include <string>
