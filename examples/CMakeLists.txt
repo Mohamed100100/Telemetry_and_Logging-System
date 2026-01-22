@@ -12,15 +12,19 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/sinks
                  ${CMAKE_BINARY_DIR}/sinks_build)
 
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/core 
-                 ${CMAKE_BINARY_DIR}/core_build)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/logger 
+                 ${CMAKE_BINARY_DIR}/logger_build)
 
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/sources
                  ${CMAKE_BINARY_DIR}/sources_build)
 
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/formatter
+                 ${CMAKE_BINARY_DIR}/formatter_build)
+
 add_executable(${PROJECT_NAME} ${App_Source_File})
 
 
-target_link_libraries(${PROJECT_NAME} raii core sinks sources)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../include/ PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../third_party/)
+target_link_libraries(${PROJECT_NAME} raii logger sinks sources formatter)
 
