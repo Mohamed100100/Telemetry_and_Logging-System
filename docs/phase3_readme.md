@@ -288,6 +288,8 @@ project/
 │   │   ├── LogManagerBuilder.hpp
 │   │   └── LogMessage.hpp
 │   │
+│   ├── utils/
+│   │   └── RingBuffer.hpp
 │   ├── sinks/
 │   │   ├── ILogSink.hpp
 │   │   ├── ConsoleSinkImpl.hpp
@@ -408,6 +410,172 @@ struct SinkConfig {
 
 ---
 
+## 🔄 Ring Buffer
+
+The system uses a **Ring Buffer** (Circular Buffer) for efficient message queuing in the `LogManager`. This provides constant memory usage and O(1) operations.
+
+### What is a Ring Buffer?
+
+A ring buffer is a fixed-size data structure that uses a single, contiguous block of memory as if it were connected end-to-end. When the buffer is full, new elements overwrite the oldest ones.
+
+### Visual Representation
+
+```
+RING BUFFER OPERATION (capacity = 5)
+════════════════════════════════════
+
+1. Initial State (empty):
+   ┌───┬───┬───┬───┬───┐
+   │   │   │   │   │   │   head=0, tail=0, count=0
+   └───┴───┴───┴───┴───┘
+     ▲
+     head/tail
+
+2. After push_back(A, B, C):
+   ┌───┬───┬───┬───┬───┐
+   │ A │ B │ C │   │   │   head=3, tail=0, count=3
+   └───┴───┴───┴───┴───┘
+     ▲           ▲
+     tail        head
+
+3. After push_back(D, E) - Buffer Full:
+   ┌───┬───┬───┬───┬───┐
+   │ A │ B │ C │ D │ E │   head=0, tail=0, count=5
+   └───┴───┴───┴───┴───┘
+     ▲
+     head/tail (wrapped)
+
+4. After push_back(F) - Overwrites Oldest (A):
+   ┌───┬───┬───┬───┬───┐
+   │ F │ B │ C │ D │ E │   head=1, tail=1, count=5
+   └───┴───┴───┴───┴───┘
+       ▲
+       head/tail
+
+5. After clear():
+   ┌───┬───┬───┬───┬───┐
+   │   │   │   │   │   │   head=0, tail=0, count=0
+   └───┴───┴───┴───┴───┘
+     ▲
+     head/tail
+```
+
+### Why Use a Ring Buffer?
+
+| Advantage | Description |
+|-----------|-------------|
+| **Fixed Memory** | Constant memory usage regardless of log volume |
+| **O(1) Operations** | push_back and clear are constant time |
+| **No Allocations** | After initialization, no dynamic memory allocation |
+| **Cache Friendly** | Contiguous memory improves cache performance |
+| **Automatic Cleanup** | Old messages automatically discarded when full |
+| **Bounded Memory** | Prevents memory exhaustion in high-volume scenarios |
+
+### Ring Buffer vs Standard Vector
+
+| Feature | Ring Buffer | std::vector |
+|---------|-------------|-------------|
+| Memory Growth | Fixed | Dynamic |
+| push_back | O(1) | O(1) amortized, O(n) worst |
+| Memory Usage | Constant | Unbounded |
+| Old Data | Auto-overwritten | Retained |
+| Best For | Bounded queues | Dynamic collections |
+
+### Implementation
+
+```cpp
+template <typename T>
+class RingBuffer {
+private:
+    std::vector<T> buffer_;
+    size_t head_;       // Next write position
+    size_t tail_;       // Oldest element position
+    size_t count_;      // Current number of elements
+    size_t capacity_;   // Maximum capacity
+
+public:
+    explicit RingBuffer(size_t capacity);
+    
+    void push_back(const T& value);  // Add element (overwrites if full)
+    void push_back(T&& value);       // Move version
+    void clear();                     // Reset buffer
+    
+    size_t size() const;             // Current element count
+    size_t capacity() const;         // Maximum capacity
+    bool empty() const;              // Check if empty
+    
+    T& operator[](size_t index);     // Access by logical index
+};
+```
+
+### Usage in LogManager
+
+```cpp
+class LogManager {
+private:
+    RingBuffer<LogMessage> LogMessagesBuffer;  // Fixed-size message queue
+    
+public:
+    explicit LogManager(size_t bufferSize = 1000) 
+        : LogMessagesBuffer(bufferSize) {}
+    
+    void log(const LogMessage& msg) {
+        LogMessagesBuffer.push_back(msg);  // O(1), auto-overwrites oldest
+    }
+    
+    void flush() {
+        for (size_t i = 0; i < LogMessagesBuffer.size(); i++) {
+            // Write to sinks
+        }
+        LogMessagesBuffer.clear();
+    }
+};
+```
+
+### Configuration
+
+```cpp
+// Default buffer size (1000 messages)
+auto logManager1 = LogManagerBuilder()
+    .addSink(consoleSink)
+    .build();
+
+// Custom buffer size
+auto logManager2 = LogManagerBuilder()
+    .setBufferSize(5000)  // Larger buffer for high-volume logging
+    .addSink(consoleSink)
+    .addSink(fileSink)
+    .build();
+
+// Small buffer for memory-constrained environments
+auto logManager3 = LogManagerBuilder()
+    .setBufferSize(100)
+    .addSink(consoleSink)
+    .build();
+```
+
+### Ring Buffer Behavior Example
+
+```cpp
+// Buffer with capacity 3
+RingBuffer<LogMessage> buffer(3);
+
+// Add 3 messages (buffer now full)
+buffer.push_back(msg1);  // [msg1, _, _]
+buffer.push_back(msg2);  // [msg1, msg2, _]
+buffer.push_back(msg3);  // [msg1, msg2, msg3] - FULL
+
+// Add 4th message - overwrites msg1
+buffer.push_back(msg4);  // [msg4, msg2, msg3]
+                         //        ^oldest  ^newest
+
+// Iterate (returns in order: msg2, msg3, msg4)
+for (size_t i = 0; i < buffer.size(); i++) {
+    process(buffer[i]);
+}
+```
+
+---
 ## Usage Examples
 
 ### Basic Usage
