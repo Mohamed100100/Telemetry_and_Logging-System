@@ -2,17 +2,18 @@
 
 #include <chrono>
 #include <iomanip>
+#include <string_view>
 #include "formatter/LogFormatterHelper.hpp"
 
 
 std::string LogFormatterHelper::GetDescription(float value,
                                                const std::string &context,
-                                               const std::string& unit){
+                                               const std::string_view& unit){
     std::string msg;
     msg+= context;
     msg+= "usage : ";
     msg+= std::to_string(value); 
-    msg += unit;
+    msg += std::string(unit);
     return msg;
 }
 
