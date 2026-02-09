@@ -9,7 +9,7 @@ struct CpuPolicy {
     static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::CPU;
     
     // Unit of measurement
-    static constexpr const char* unit = "%";
+    static constexpr std::string_view unit = "%";
     
     // Threshold values
     static constexpr float WARNING = 75.0f;

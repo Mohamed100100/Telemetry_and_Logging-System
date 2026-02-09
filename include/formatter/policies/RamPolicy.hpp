@@ -9,7 +9,7 @@ struct RamPolicy {
     static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::RAM;
     
     // Unit of measurement
-    static constexpr const char* unit = "MB";
+    static constexpr std::string_view unit = "MB";
     
     // Threshold values
     static constexpr float WARNING = 70.0f;

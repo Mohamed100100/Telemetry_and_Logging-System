@@ -9,7 +9,7 @@ struct GpuPolicy {
     static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::GPU;
     
     // Unit of measurement
-    static constexpr const char* unit = "%";
+    static constexpr std::string_view unit = "%";
     
     // Threshold values
     static constexpr float WARNING = 80.0f;
