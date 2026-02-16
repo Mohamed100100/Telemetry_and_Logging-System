@@ -28,6 +28,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME}
+    raii
     CommonAPI
     CommonAPI-SomeIP
     vsomeip3
