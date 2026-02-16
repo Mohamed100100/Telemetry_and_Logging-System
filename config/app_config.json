@@ -1,0 +1,45 @@
+{
+    "application": {
+        "name": "TelemetryMonitor"
+    },
+
+    "sources": [
+        {
+            "type": "file",
+            "path": "/tmp/cpu_data.txt",
+            "telemetryType": "CPU",
+            "rateMs": 500
+        },
+        {
+            "type": "file",
+            "path": "/tmp/gpu_data.txt",
+            "telemetryType": "GPU",
+            "rateMs": 300
+        },
+        {
+            "type": "socket",
+            "path": "/tmp/telemetry.sock",
+            "telemetryType": "RAM",
+            "rateMs": 1000
+        },
+        {
+            "type": "someip",
+            "telemetryType": "CPU",
+            "rateMs": 500
+        }
+    ],
+
+    "sinks": [
+        {
+            "type": "console"
+        },
+        {
+            "type": "file",
+            "path": "/tmp/app.log"
+        },
+        {
+            "type": "file",
+            "path": "/tmp/errors.log"
+        }
+    ]
+}
