@@ -1,0 +1,26 @@
+import "platform:/plugin/org.genivi.commonapi.someip/deployment/CommonAPI-4-SOMEIP_deployment_spec.fdepl"
+import "TelemetryService.fidl"
+
+define org.genivi.commonapi.someip.deployment for interface log.TelemetryService {
+    SomeIpServiceID = 0x4666
+
+    method getLoad {
+        SomeIpMethodID = 0x01
+        SomeIpReliable = false
+    }
+}
+
+
+define org.genivi.commonapi.someip.deployment for provider as MyService {
+
+    instance log.TelemetryService {
+        InstanceId = "TelemetryService"
+
+        SomeIpInstanceID = 0x01
+
+        // Network configuration
+        SomeIpUnicastAddress = "127.0.0.1"
+        SomeIpReliableUnicastPort = 30501      // TCP port
+        SomeIpUnreliableUnicastPort = 30502    // UDP port
+    }
+}

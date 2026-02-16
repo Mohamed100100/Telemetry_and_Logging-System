@@ -1,0 +1,13 @@
+package log
+
+interface TelemetryService {
+
+    version {major 1 minor 0}
+
+    method getLoad{
+        out {
+            UInt8 loadPercentage
+        }
+    }
+  
+}
