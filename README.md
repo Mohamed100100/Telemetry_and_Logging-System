@@ -1,6 +1,6 @@
 # 📊 Telemetry and Logging System
 
-A modern, high-performance C++17 telemetry monitoring and logging system featuring policy-based design, multiple output sinks, thread-safe ring buffers, asynchronous logging, and a thread pool for parallel sink writing.
+A modern, high-performance C++17 telemetry monitoring and logging system featuring policy-based design, asynchronous logging, SOME/IP network communication, and a simple façade interface with JSON-based runtime configuration.
 
 ---
 
@@ -8,8 +8,10 @@ A modern, high-performance C++17 telemetry monitoring and logging system featuri
 
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![Build](https://img.shields.io/badge/build-CMake-green.svg)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
 ![Threading](https://img.shields.io/badge/threading-Multi--threaded-orange.svg)
+![SOME/IP](https://img.shields.io/badge/SOME%2FIP-vsomeip3-purple.svg)
+![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
 
 </div>
 
@@ -21,33 +23,46 @@ A modern, high-performance C++17 telemetry monitoring and logging system featuri
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Getting Started](#-getting-started)
+- [Quick Start](#-quick-start)
+- [Configuration](#-configuration)
 - [Project Structure](#-project-structure)
 - [Design Patterns](#-design-patterns)
 - [Components](#-components)
-- [Thread-Safe Ring Buffer](#-thread-safe-ring-buffer)
-- [Asynchronous Logging](#-asynchronous-logging)
-- [Thread Pool](#-thread-pool)
-- [Usage Examples](#-usage-examples)
 - [Phase Development](#-phase-development)
 - [API Reference](#-api-reference)
 - [Performance](#-performance)
+- [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
+- [Author](#-author)
+- [Acknowledgments](#-acknowledgments)
 
 ---
 
 ## 🎯 Overview
 
-The **Telemetry and Logging System** is a comprehensive logging framework designed for monitoring system telemetry data (CPU, GPU, RAM usage). It processes raw telemetry readings, classifies them by severity based on configurable thresholds, and outputs formatted log messages to multiple destinations simultaneously and asynchronously.
+The **Telemetry and Logging System** is a comprehensive logging framework designed for monitoring system telemetry data (CPU, GPU, RAM usage). It processes raw telemetry readings from multiple sources (files, sockets, SOME/IP network), classifies them by severity based on configurable thresholds, and outputs formatted log messages to multiple destinations simultaneously and asynchronously.
 
 ### Why This Project?
 
 | Aspect | Description |
 |--------|-------------|
 | **Real-world Application** | Demonstrates practical software engineering for system monitoring |
-| **Modern C++** | Showcases C++17 features and best practices |
-| **Design Patterns** | Implements industry-standard patterns for maintainability |
+| **Modern C++17** | Showcases modern C++ features and best practices |
+| **Design Patterns** | Implements 8+ industry-standard patterns for maintainability |
 | **Concurrency** | Features multi-threaded architecture for high performance |
 | **Extensibility** | Easy to add new telemetry sources, policies, and output sinks |
+| **Automotive Ready** | Includes SOME/IP middleware integration for automotive applications |
+| **Simple API** | Façade pattern provides 2-line usage despite internal complexity |
+
+### The Power of Façade
+
+```cpp
+// BEFORE: 50+ lines of setup code
+// AFTER: Just 2 lines!
+
+TelemetryApp app("config.json");
+app.start();
+```
 
 ---
 
@@ -60,15 +75,26 @@ The **Telemetry and Logging System** is a comprehensive logging framework design
 | 🎛️ **Policy-Based Configuration** | Compile-time threshold configuration per telemetry type |
 | 📝 **Multiple Output Sinks** | Console, File, and extensible for Network/Database |
 | 🔄 **Thread-Safe Ring Buffer** | Efficient fixed-size circular buffer with mutex protection |
-| 🏭 **Factory Pattern** | Flexible sink creation without exposing implementations |
-| 🔨 **Builder Pattern** | Fluent API for constructing complex logging configurations |
-| 🔒 **RAII Resource Management** | Safe handling of files, sockets, and system resources |
-| 📊 **Severity Classification** | Automatic INFO/WARNING/CRITICAL classification |
-| ⏰ **Timestamping** | Automatic timestamp generation for all log entries |
-| 🔌 **Pluggable Architecture** | Easy integration of new telemetry sources |
 | ⚡ **Asynchronous Logging** | Non-blocking log operations using background threads |
 | 🧵 **Thread Pool** | Parallel sink writing for maximum throughput |
-| 🔔 **Condition Variables** | Efficient thread synchronization without busy-waiting |
+| 🌐 **SOME/IP Integration** | Network telemetry via vSOME/IP middleware |
+| 🎭 **Façade Pattern** | Simple 2-line API hiding all complexity |
+| 📄 **JSON Configuration** | Runtime configuration without recompilation |
+| 🔒 **RAII Resource Management** | Safe handling of files, sockets, and system resources |
+| 🛑 **Graceful Shutdown** | Signal handling (Ctrl+C) with clean resource cleanup |
+
+### Design Patterns Implemented
+
+| Pattern | Usage |
+|---------|-------|
+| **Strategy** | Interchangeable sink implementations |
+| **Policy-Based Design** | Compile-time threshold configuration |
+| **Factory** | Flexible sink creation |
+| **Builder** | Fluent LogManager construction |
+| **Singleton** | Single SOME/IP client instance |
+| **Adapter** | SOME/IP to ITelemetrySource bridge |
+| **Façade** | Simple TelemetryApp interface |
+| **Producer-Consumer** | Async logging architecture |
 
 ### Technical Highlights
 
@@ -79,9 +105,9 @@ The **Telemetry and Logging System** is a comprehensive logging framework design
 - ✅ Header-only policy classes
 - ✅ Zero-cost abstractions
 - ✅ Efficient circular buffer with O(1) operations
-- ✅ Lock-free design where possible
 - ✅ Bounded memory usage
 - ✅ Graceful shutdown handling
+- ✅ Signal-safe stop mechanism
 
 ---
 
@@ -90,82 +116,120 @@ The **Telemetry and Logging System** is a comprehensive logging framework design
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                         TELEMETRY AND LOGGING SYSTEM                            │
+│                              Complete Architecture                              │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
-│   ┌─────────────────┐                                                           │
-│   │   DATA SOURCES  │                                                           │
-│   ├─────────────────┤                                                           │
-│   │ • File Source   │─────┐                                                     │
-│   │ • Socket Source │     │                                                     │
-│   │ • (Extensible)  │     │                                                     │
-│   └─────────────────┘     │                                                     │
-│                           ▼                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐               │
-│   │                    PROCESSING LAYER                         │               │
-│   │                                                             │               │
-│   │  ┌──────────────┐    ┌───────────────────────────────────┐  │               │
-│   │  │   Policies   │    │      LogFormatter<Policy>         │  │               │
-│   │  ├──────────────┤    ├───────────────────────────────────┤  │               │
-│   │  │ • CpuPolicy  │───▶│ • Parse raw telemetry data        │  │               │
-│   │  │ • GpuPolicy  │    │ • Apply policy thresholds         │  │               │
-│   │  │ • RamPolicy  │    │ • Generate severity level         │  │               │
-│   │  └──────────────┘    │ • Create timestamped LogMessage   │  │               │
-│   │                      └───────────────┬───────────────────┘  │               │
-│   └──────────────────────────────────────┼──────────────────────┘               │
-│                                          │                                      │
-│                                          ▼                                      │
-│   ┌─────────────────────────────────────────────────────────────┐               │
-│   │                 ASYNC LOGGING LAYER                         │               │
-│   │                                                             │               │
-│   │  ┌─────────────────┐         ┌────────────────────────┐     │               │
-│   │  │   LogManager    │◀────────│  LogManagerBuilder     │     │               │
-│   │  ├─────────────────┤         └────────────────────────┘     │               │
-│   │  │                 │                                        │               │
-│   │  │ ┌─────────────┐ │    log() is NON-BLOCKING!              │               │
-│   │  │ │ RingBuffer  │ │    Main thread never waits.            │               │
-│   │  │ │<LogMessage> │ │                                        │               │
-│   │  │ │ (bounded)   │ │                                        │               │
-│   │  │ └─────────────┘ │                                        │               │
-│   │  │       │         │                                        │               │
-│   │  │       ▼         │                                        │               │
-│   │  │ ┌─────────────┐ │                                        │               │
-│   │  │ │  Flushing   │ │    Background thread consumes          │               │
-│   │  │ │   Thread    │ │    messages from buffer.               │               │
-│   │  │ └─────────────┘ │                                        │               │
-│   │  │       │         │                                        │               │
-│   │  │       ▼         │                                        │               │
-│   │  │ ┌─────────────┐ │                                        │               │
-│   │  │ │ ThreadPool  │ │    Parallel sink writing!              │               │
-│   │  │ │ (N workers) │ │                                        │               │
-│   │  │ └─────────────┘ │                                        │               │
-│   │  └────────┬────────┘                                        │               │
-│   └───────────┼─────────────────────────────────────────────────┘               │
-│               │                                                                 │
-│               ▼                                                                 │
-│   ┌─────────────────────────────────────────────────────────────┐               │
-│   │                    OUTPUT LAYER                             │               │
-│   │                                                             │               │
-│   │  ┌────────────────┐                                         │               │
-│   │  │ LogSinkFactory │                                         │               │
-│   │  └───────┬────────┘                                         │               │
-│   │          │ creates                                          │               │
-│   │          ▼                                                  │               │
-│   │  ┌──────────────────────────────────────────────────────┐   │               │
-│   │  │                    ILogSink                          │   │               │
-│   │  │     ▲                 ▲                 ▲            │   │               │
-│   │  │     │                 │                 │            │   │               │
-│   │  │ ┌───┴────┐       ┌────┴────┐       ┌────┴─────┐      │   │               │
-│   │  │ │Console │       │  File   │       │ (Future) │      │   │               │
-│   │  │ │ Sink   │       │  Sink   │       │  Sinks   │      │   │               │
-│   │  │ └────────┘       └─────────┘       └──────────┘      │   │               │
-│   │  └──────────────────────────────────────────────────────┘   │               │
-│   │          │                  │                               │               │
-│   │          ▼                  ▼                               │               │
-│   │     ┌────────┐         ┌────────┐                           │               │
-│   │     │ stdout │         │  .log  │                           │               │
-│   │     └────────┘         │ files  │                           │               │
-│   │                        └────────┘                           │               │
-│   └─────────────────────────────────────────────────────────────┘               │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │                         FAÇADE LAYER (Phase 6)                            │  │
+│  │                                                                           │  │
+│  │   ┌─────────────┐         ┌─────────────────────────────────────────┐     │  │
+│  │   │ config.json │────────▶│            TelemetryApp                 │     │  │
+│  │   └─────────────┘         │                                         │     │  │
+│  │                           │  • TelemetryApp(configPath)             │     │  │
+│  │                           │  • start()  → runs until Ctrl+C         │     │  │
+│  │                           │  • stop()   → graceful shutdown         │     │  │
+│  │                           │                                         │     │  │
+│  │                           └─────────────────────────────────────────┘     │  │
+│  │                                           │                               │  │
+│  └───────────────────────────────────────────┼───────────────────────────────┘  │
+│                                              │                                  │
+│  ┌───────────────────────────────────────────┼───────────────────────────────┐  │
+│  │                    DATA SOURCE LAYER (Phase 2 & 5)                        │  │
+│  │                                           │                               │  │
+│  │   ┌───────────────────────────────────────┼────────────────────────────┐  │  │
+│  │   │              ITelemetrySource Interface                            │  │  │
+│  │   └───────────────────────────────────────┼────────────────────────────┘  │  │
+│  │                    │                      │                     │         │  │
+│  │                    ▼                      ▼                     ▼         │  │
+│  │   ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────┐   │  │
+│  │   │ FileTelemetrySource │  │SocketTelemetrySource│  │SomeIPTelemetry  │   │  │
+│  │   │       Impl          │  │       Impl          │  │  SourceAdapter  │   │  │
+│  │   │                     │  │                     │  │                 │   │  │
+│  │   │   ┌───────────┐     │  │   ┌───────────┐     │  │  ┌───────────┐  │   │  │
+│  │   │   │ SafeFile  │     │  │   │SafeSocket │     │  │  │ Singleton │  │   │  │
+│  │   │   │  (RAII)   │     │  │   │  (RAII)   │     │  │  │  Client   │  │   │  │
+│  │   │   └───────────┘     │  │   └───────────┘     │  │  └───────────┘  │   │  │
+│  │   └─────────────────────┘  └─────────────────────┘  └────────┬────────┘   │  │
+│  │                                                              │            │  │
+│  │                                                      ┌───────▼────────┐   │  │
+│  │                                                      │   vsomeip /    │   │  │
+│  │                                                      │   CommonAPI    │   │  │
+│  │                                                      └────────────────┘   │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
+│                                              │                                  │
+│  ┌───────────────────────────────────────────┼───────────────────────────────┐  │
+│  │                    PROCESSING LAYER (Phase 3)                             │  │
+│  │                                           │                               │  │
+│  │   ┌──────────────────┐    ┌───────────────▼───────────────────────────┐   │  │
+│  │   │     Policies     │    │         LogFormatter<Policy>              │   │  │
+│  │   │                  │    │                                           │   │  │
+│  │   │ ┌──────────────┐ │    │  • Parse raw telemetry data ("45.5")      │   │  │
+│  │   │ │  CpuPolicy   │ │───▶│  • Apply policy thresholds                │   │  │
+│  │   │ │  WARN: 75%   │ │    │  • Generate severity (INFO/WARN/CRITICAL) │   │  │
+│  │   │ │  CRIT: 90%   │ │    │  • Create timestamped LogMessage          │   │  │
+│  │   │ └──────────────┘ │    │                                           │   │  │
+│  │   │ ┌──────────────┐ │    └───────────────────────────────────────────┘   │  │
+│  │   │ │  GpuPolicy   │ │                                                    │  │
+│  │   │ │  WARN: 80%   │ │                                                    │  │
+│  │   │ │  CRIT: 95%   │ │                                                    │  │
+│  │   │ └──────────────┘ │                                                    │  │
+│  │   │ ┌──────────────┐ │                                                    │  │
+│  │   │ │  RamPolicy   │ │                                                    │  │
+│  │   │ │  WARN: 70%   │ │                                                    │  │
+│  │   │ │  CRIT: 85%   │ │                                                    │  │
+│  │   │ └──────────────┘ │                                                    │  │
+│  │   └──────────────────┘                                                    │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
+│                                              │                                  │
+│  ┌───────────────────────────────────────────┼───────────────────────────────┐  │
+│  │                 ASYNC LOGGING LAYER (Phase 1 & 4)                         │  │
+│  │                                           │                               │  │
+│  │   ┌───────────────────────────────────────▼───────────────────────────┐   │  │
+│  │   │                        LogManager                                 │   │  │
+│  │   │                                                                   │   │  │
+│  │   │  ┌─────────────────────────────────────────────────────────────┐  │   │  │
+│  │   │  │              Thread-Safe Ring Buffer                        │  │   │  │
+│  │   │  │  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐          │  │   │  │
+│  │   │  │  │ msg │ msg │ msg │     │     │     │     │     │          │  │   │  │
+│  │   │  │  └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘          │  │   │  │
+│  │   │  │    ▲                   ▲                                    │  │   │  │
+│  │   │  │   tail               head          (bounded memory!)        │  │   │  │
+│  │   │  └─────────────────────────────────────────────────────────────┘  │   │  │
+│  │   │                           │                                       │   │  │
+│  │   │                    Flushing Thread                                │   │  │
+│  │   │                     (cv.wait())                                   │   │  │
+│  │   │                           │                                       │   │  │
+│  │   │  ┌────────────────────────▼────────────────────────────────────┐  │   │  │
+│  │   │  │                    Thread Pool                              │  │   │  │
+│  │   │  │                                                             │  │   │  │
+│  │   │  │    ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │  │   │  │
+│  │   │  │    │ Worker 1 │  │ Worker 2 │  │ Worker 3 │  │ Worker 4 │   │  │   │  │
+│  │   │  │    └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘   │  │   │  │
+│  │   │  │         │             │             │             │         │  │   │  │
+│  │   │  └─────────┼─────────────┼─────────────┼─────────────┼─────────┘  │   │  │
+│  │   │            │             │             │             │            │   │  │
+│  │   └────────────┼─────────────┼─────────────┼─────────────┼────────────┘   │  │
+│  │                │             │             │             │                │  │
+│  └────────────────┼─────────────┼─────────────┼─────────────┼────────────────┘  │
+│                   │             │             │             │                   │
+│  ┌────────────────┼─────────────┼─────────────┼─────────────┼────────────────┐  │
+│  │                ▼             ▼             ▼             ▼                │  │
+│  │                      OUTPUT LAYER (Phase 1)                               │  │
+│  │                                                                           │  │
+│  │   ┌───────────────────────────────────────────────────────────────────┐   │  │
+│  │   │                      ILogSink Interface                           │   │  │
+│  │   └───────────────────────────────────────────────────────────────────┘   │  │
+│  │                    │                            │                         │  │
+│  │                    ▼                            ▼                         │  │
+│  │   ┌─────────────────────────┐    ┌─────────────────────────┐              │  │
+│  │   │    ConsoleSinkImpl      │    │     FileSinkImpl        │              │  │
+│  │   │                         │    │                         │              │  │
+│  │   │    ┌───────────────┐    │    │    ┌───────────────┐    │              │  │
+│  │   │    │    stdout     │    │    │    │   app.log     │    │              │  │
+│  │   │    └───────────────┘    │    │    └───────────────┘    │              │  │
+│  │   └─────────────────────────┘    └─────────────────────────┘              │  │
+│  │                                                                           │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -176,12 +240,15 @@ The **Telemetry and Logging System** is a comprehensive logging framework design
 
 ### Prerequisites
 
-| Requirement | Version |
-|-------------|---------|
-| C++ Compiler | GCC 8+, Clang 7+, or MSVC 2019+ |
-| CMake | 3.16 or higher |
-| Standard | C++17 |
-| Threading | pthread (Linux) or Windows threads |
+| Requirement | Version | Required For |
+|-------------|---------|--------------|
+| C++ Compiler | GCC 8+ / Clang 7+ | All features |
+| CMake | 3.16+ | Build system |
+| C++ Standard | C++17 | Language features |
+| pthread | - | Threading (Linux) |
+| vsomeip3 | 3.x | SOME/IP features (optional) |
+| CommonAPI | 3.2+ | SOME/IP features (optional) |
+| nlohmann/json | 3.x | JSON configuration (included) |
 
 ### Installation
 
@@ -190,15 +257,50 @@ The **Telemetry and Logging System** is a comprehensive logging framework design
 git clone https://github.com/yourusername/Telemetry_and_Logging-System.git
 cd Telemetry_and_Logging-System
 
-# Configure and build
-cmake -S . -B build
+# Configure and build (without SOME/IP)
+cmake -S ./examples -B build -DApp_Source_File=phase6_demo.cpp
 cmake --build build
 
-# Run demo
-./build/examples/Demo
+# Run the demo
+./build/Demo
 ```
 
-### Quick Start
+### Build with SOME/IP Support
+
+```bash
+# Install vsomeip and CommonAPI first (see Phase 5 documentation)
+
+# Build with SOME/IP enabled
+cmake -S ./examples -B build -DApp_Source_File=phase6_demo.cpp -DENABLE_SOMEIP=ON
+cmake --build build
+```
+
+---
+
+## ⚡ Quick Start
+
+### The Simplest Way (Recommended)
+
+```cpp
+#include "app/TelemetryApp.hpp"
+
+int main() {
+    telemetry::TelemetryApp app("config.json");
+    app.start();  // Runs until Ctrl+C
+    return 0;
+}
+```
+
+**That's it!** The `TelemetryApp` façade handles everything:
+- ✅ Configuration loading
+- ✅ Source creation
+- ✅ Sink creation
+- ✅ Formatter setup
+- ✅ Rate limiting
+- ✅ Signal handling
+- ✅ Graceful shutdown
+
+### Manual Setup (Advanced)
 
 ```cpp
 #include "formatter/LogFormatter.hpp"
@@ -210,11 +312,11 @@ int main() {
     // 1. Create formatter with policy
     LogFormatter<CpuPolicy> formatter("MyApp");
     
-    // 2. Create sinks via factory
-    LogSinkFactory factory;
+    // 2. Create LogManager (starts worker threads automatically)
+    LogManager logManager(100, 4);  // 100 buffer size, 4 pool workers
     
-    // 3. Create async LogManager (starts worker thread automatically)
-    LogManager logManager(100, 4);  // 100 buffer size, 4 thread pool workers
+    // 3. Add sinks
+    LogSinkFactory factory;
     logManager.addSink(factory.CreateSink(SinkConfig::Console()).release());
     logManager.addSink(factory.CreateSink(SinkConfig::File("app.log")).release());
     
@@ -224,7 +326,96 @@ int main() {
         logManager.log(logMsg.value());  // Returns immediately!
     }
     
-    // 5. Destructor handles graceful shutdown
+    return 0;  // Destructor handles graceful shutdown
+}
+```
+
+---
+
+## ⚙️ Configuration
+
+### JSON Configuration File
+
+Create a `config.json` file:
+
+```json
+{
+    "application": {
+        "name": "MyTelemetryApp"
+    },
+    "sources": [
+        {
+            "type": "file",
+            "path": "/tmp/cpu_data.txt",
+            "telemetryType": "CPU",
+            "rateMs": 500
+        },
+        {
+            "type": "file",
+            "path": "/tmp/gpu_data.txt",
+            "telemetryType": "GPU",
+            "rateMs": 300
+        },
+        {
+            "type": "socket",
+            "path": "/tmp/telemetry.sock",
+            "telemetryType": "RAM",
+            "rateMs": 1000
+        },
+        {
+            "type": "someip",
+            "telemetryType": "CPU",
+            "rateMs": 1000
+        }
+    ],
+    "sinks": [
+        {
+            "type": "console"
+        },
+        {
+            "type": "file",
+            "path": "/var/log/telemetry.log"
+        }
+    ]
+}
+```
+
+### Configuration Parameters
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `application.name` | string | Application identifier | `"MyApp"` |
+| `sources[].type` | string | Source type | `"file"`, `"socket"`, `"someip"` |
+| `sources[].path` | string | Path for file/socket | `"/tmp/data.txt"` |
+| `sources[].telemetryType` | string | Data type | `"CPU"`, `"GPU"`, `"RAM"` |
+| `sources[].rateMs` | number | Polling rate (ms) | `500` |
+| `sinks[].type` | string | Sink type | `"console"`, `"file"` |
+| `sinks[].path` | string | Path for file sink | `"/var/log/app.log"` |
+
+### Programmatic Configuration
+
+```cpp
+#include "app/TelemetryApp.hpp"
+
+int main() {
+    telemetry::AppConfig config;
+    config.appName = "MyApp";
+    
+    // Add CPU source
+    telemetry::SourceConfig cpuSource;
+    cpuSource.sourceType = telemetry::SourceType::FILE;
+    cpuSource.path = "/tmp/cpu_data.txt";
+    cpuSource.telemetryType = telemetry::TelemetryType::CPU;
+    cpuSource.rateMs = 500;
+    config.sources.push_back(cpuSource);
+    
+    // Add console sink
+    telemetry::SinkConfigData consoleSink;
+    consoleSink.sinkType = telemetry::SinkType::CONSOLE;
+    config.sinks.push_back(consoleSink);
+    
+    telemetry::TelemetryApp app(config);
+    app.start();
     return 0;
 }
 ```
@@ -234,15 +425,20 @@ int main() {
 ## 📁 Project Structure
 
 ```
-project/
+Telemetry_and_Logging-System/
+│
 ├── 📂 include/
-│   ├── 📂 enums/
+│   ├── 📂 app/                          # Phase 6: Façade
+│   │   ├── AppConfig.hpp                # Configuration structures
+│   │   └── TelemetryApp.hpp             # Main façade class
+│   │
+│   ├── 📂 enums/                        # Enumerations
 │   │   ├── LogSinkType.hpp
 │   │   ├── SeverityLevel.hpp
 │   │   ├── SinksType.hpp
 │   │   └── TelemetrySource.hpp
 │   │
-│   ├── 📂 formatter/
+│   ├── 📂 formatter/                    # Phase 3: Policy-based formatting
 │   │   ├── 📂 policies/
 │   │   │   ├── CpuPolicy.hpp
 │   │   │   ├── GpuPolicy.hpp
@@ -250,66 +446,101 @@ project/
 │   │   ├── LogFormatter.hpp
 │   │   └── LogFormatterHelper.hpp
 │   │
-│   ├── 📂 logger/
+│   ├── 📂 logger/                       # Phase 1 & 4: Core logging
 │   │   ├── LogManager.hpp
 │   │   ├── LogManagerBuilder.hpp
 │   │   └── LogMessage.hpp
 │   │
-│   ├── 📂 sinks/
+│   ├── 📂 sinks/                        # Phase 1: Output destinations
 │   │   ├── ILogSink.hpp
 │   │   ├── ConsoleSinkImpl.hpp
 │   │   ├── FileSinkImpl.hpp
 │   │   ├── LogSinkFactory.hpp
 │   │   └── SinkConfig.hpp
 │   │
-│   ├── 📂 sources/
+│   ├── 📂 sources/                      # Phase 2 & 5: Data sources
 │   │   ├── ITelemetrySource.hpp
 │   │   ├── FileTelemetrySourceImpl.hpp
-│   │   └── SocketTelemetrySourceImpl.hpp
+│   │   ├── SocketTelemetrySourceImpl.hpp
+│   │   ├── SomeIPTelemetrySourceImpl.hpp      # Phase 5
+│   │   └── SomeIPTelemetrySourceAdapter.hpp   # Phase 5
 │   │
-│   ├── 📂 utils/
+│   ├── 📂 services/                     # Phase 5: SOME/IP server
+│   │   └── TelemetryServiceImpl.hpp
+│   │
+│   ├── 📂 utils/                        # Phase 4: Concurrency utilities
 │   │   ├── RingBuffer.hpp
 │   │   └── ThreadPool.hpp
 │   │
-│   └── 📂 raii/
+│   └── 📂 raii/                         # Phase 2: Resource management
 │       ├── SafeFile.hpp
 │       └── SafeSocket.hpp
 │
 ├── 📂 src/
+│   ├── 📂 app/                          # Façade implementation
+│   │   ├── AppConfig.cpp
+│   │   ├── TelemetryApp.cpp
+│   │   └── CMakeLists.txt
+│   │
 │   ├── 📂 formatter/
-│   │   └── LogFormatterHelper.cpp
+│   │   ├── LogFormatterHelper.cpp
+│   │   └── CMakeLists.txt
 │   │
 │   ├── 📂 logger/
 │   │   ├── LogManager.cpp
 │   │   ├── LogManagerBuilder.cpp
-│   │   └── LogMessage.cpp
+│   │   ├── LogMessage.cpp
+│   │   └── CMakeLists.txt
 │   │
 │   ├── 📂 sinks/
 │   │   ├── ConsoleSinkImpl.cpp
 │   │   ├── FileSinkImpl.cpp
 │   │   ├── LogSinkFactory.cpp
-│   │   └── SinkConfig.cpp
-│   │
-│   ├── 📂 utils/
-│   │   └── ThreadPool.cpp
+│   │   ├── SinkConfig.cpp
+│   │   └── CMakeLists.txt
 │   │
 │   ├── 📂 sources/
 │   │   ├── FileTelemetrySourceImpl.cpp
-│   │   └── SocketTelemetrySourceImpl.cpp
+│   │   ├── SocketTelemetrySourceImpl.cpp
+│   │   ├── SomeIPTelemetrySourceImpl.cpp
+│   │   ├── SomeIPTelemetrySourceAdapter.cpp
+│   │   └── CMakeLists.txt
 │   │
-│   └── 📂 raii/
-│       ├── SafeFile.cpp
-│       └── SafeSocket.cpp
+│   ├── 📂 services/
+│   │   ├── TelemetryServiceImpl.cpp
+│   │   ├── TelemetryServiceRunner.cpp
+│   │   └── CMakeLists.txt
+│   │
+│   ├── 📂 raii/
+│   │   ├── SafeFile.cpp
+│   │   ├── SafeSocket.cpp
+│   │   └── CMakeLists.txt
+│   │
+│   └── 📂 utils/
+│       └── CMakeLists.txt
+│
+├── 📂 fidl/                             # Phase 5: Franca IDL
+│   ├── TelemetryService.fidl
+│   ├── TelemetryService.fdepl
+│   └── 📂 src-gen/                      # Generated code
+│
+├── 📂 config/                           # Configuration files
+│   ├── commonapi.ini
+│   ├── vsomeip-local.json
+│   └── telemetry_config.json
 │
 ├── 📂 examples/
 │   ├── CMakeLists.txt
 │   ├── phase1_demo.cpp
 │   ├── phase2_demo.cpp
 │   ├── phase3_demo.cpp
-│   └── phase4_demo.cpp
+│   ├── phase4_demo.cpp
+│   ├── phase5_demo.cpp
+│   └── phase6_demo.cpp
 │
 ├── 📂 third_party/
-│   └── magic_enum.hpp
+│   ├── magic_enum.hpp
+│   └── json.hpp                         # nlohmann/json
 │
 ├── 📂 scripts/
 │   └── socket_server.sh
@@ -323,12 +554,47 @@ project/
 
 ## 🎨 Design Patterns
 
-### 1. Policy-Based Design
+### Pattern Summary
 
-Compile-time configuration using template parameters for zero runtime overhead.
+| Pattern | Phase | Implementation | Purpose |
+|---------|-------|----------------|---------|
+| **Strategy** | 1 | `ILogSink` interface | Interchangeable sink implementations |
+| **Policy-Based Design** | 3 | `LogFormatter<Policy>` | Compile-time threshold configuration |
+| **Factory** | 3 | `LogSinkFactory` | Encapsulated sink creation |
+| **Builder** | 3 | `LogManagerBuilder` | Fluent configuration API |
+| **Singleton** | 5 | `SomeIPTelemetrySourceImpl` | Single SOME/IP client instance |
+| **Adapter** | 5 | `SomeIPTelemetrySourceAdapter` | Bridge SOME/IP to `ITelemetrySource` |
+| **Façade** | 6 | `TelemetryApp` | Simple unified interface |
+| **Producer-Consumer** | 4 | Ring Buffer + Worker Thread | Async logging architecture |
+
+### Pattern Details
+
+#### 1. Façade Pattern (Phase 6)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FAÇADE PATTERN                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   User Code:                              Hidden Complexity:                │
+│   ══════════                              ══════════════════                │
+│                                                                             │
+│   TelemetryApp app(config);               • JSON parsing                    │
+│   app.start();                            • Source creation                 │
+│                                           • Sink creation                   │
+│   Just 2 lines!                           • Formatter setup                 │
+│                                           • Rate limiting                   │
+│                                           • Signal handling                 │
+│                                           • Thread management               │
+│                                           • Graceful shutdown               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 2. Policy-Based Design (Phase 3)
 
 ```cpp
-// Define policy with thresholds
+// Zero runtime overhead - all resolved at compile time
 struct CpuPolicy {
     static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::CPU;
     static constexpr const char* unit = "%";
@@ -336,132 +602,64 @@ struct CpuPolicy {
     static constexpr float CRITICAL = 90.0f;
 };
 
-// Use policy at compile time
-LogFormatter<CpuPolicy> formatter("App");  // Zero runtime overhead
+LogFormatter<CpuPolicy> formatter("App");  // Template instantiation
 ```
 
-**Benefits:**
-- Type safety at compile time
-- Zero runtime overhead
-- Easy to add new policies
-
-### 2. Factory Pattern
-
-Encapsulates object creation logic:
+#### 3. Singleton Pattern (Phase 5)
 
 ```cpp
-LogSinkFactory factory;
-
-// Create sinks without knowing concrete types
-auto consoleSink = factory.CreateSink(SinkConfig::Console());
-auto fileSink = factory.CreateSink(SinkConfig::File("app.log"));
-```
-
-**Benefits:**
-- Decouples client from concrete implementations
-- Centralizes creation logic
-- Easy to extend with new sink types
-
-### 3. Builder Pattern
-
-Fluent API for complex object construction:
-
-```cpp
-auto logManager = LogManagerBuilder()
-    .setBufferSize(1000)
-    .setPoolSize(4)
-    .addSink(consoleSink)
-    .addSink(fileSink)
-    .build();
-```
-
-**Benefits:**
-- Readable, self-documenting code
-- Flexible configuration
-- Immutable final object
-
-### 4. RAII (Resource Acquisition Is Initialization)
-
-Safe resource management for files, sockets, threads, and mutexes:
-
-```cpp
-class SafeFile {
-    int fd;
+// Thread-safe singleton (C++11 guarantee)
+class SomeIPTelemetrySourceImpl {
+private:
+    SomeIPTelemetrySourceImpl() = default;  // Private constructor
+    
 public:
-    SafeFile(const std::string& path) {
-        fd = open(path.c_str(), O_RDONLY);  // Acquire
+    static SomeIPTelemetrySourceImpl& getInstance() {
+        static SomeIPTelemetrySourceImpl instance;  // Created once
+        return instance;
     }
-    ~SafeFile() {
-        if (fd >= 0) close(fd);              // Release
-    }
+    
+    // Delete copy/move
+    SomeIPTelemetrySourceImpl(const SomeIPTelemetrySourceImpl&) = delete;
+    SomeIPTelemetrySourceImpl& operator=(const SomeIPTelemetrySourceImpl&) = delete;
 };
 ```
 
-**Benefits:**
-- Exception-safe resource handling
-- No resource leaks
-- Automatic cleanup
-
-### 5. Strategy Pattern (via Interface)
-
-Interchangeable sink implementations:
-
-```cpp
-class ILogSink {
-public:
-    virtual void write(const LogMessage& msg) = 0;
-    virtual ~ILogSink() = default;
-};
-
-// Different strategies
-class ConsoleSinkImpl : public ILogSink { /* ... */ };
-class FileSinkImpl : public ILogSink { /* ... */ };
-```
-
-### 6. Producer-Consumer Pattern
-
-Separates data production (main thread) from consumption (worker thread):
+#### 4. Producer-Consumer (Phase 4)
 
 ```
-Producer (Main Thread)          Consumer (Worker Thread)
-        │                               │
-        ▼                               ▼
-   log(message)                  while(running) {
-        │                           wait for data
-        ▼                           pop from buffer
-   push to buffer ───────────────► write to sinks
-        │                         }
-   return immediately
-```
-
-### 7. Thread Pool Pattern
-
-Reuses worker threads to avoid creation overhead:
-
-```
-                    ┌─────────────────────┐
-   submit(task) ───▶│    Task Queue       │
-                    └──────────┬──────────┘
-                               │
-            ┌──────────────────┼──────────────────┐
-            │                  │                  │
-            ▼                  ▼                  ▼
-      ┌──────────┐       ┌──────────┐       ┌──────────┐
-      │ Worker 1 │       │ Worker 2 │       │ Worker 3 │
-      └──────────┘       └──────────┘       └──────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      PRODUCER-CONSUMER PATTERN                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  PRODUCER (Main Thread)              CONSUMER (Flushing Thread)             │
+│  ═══════════════════════             ═══════════════════════════            │
+│                                                                             │
+│  log(message):                       workLoop():                            │
+│  {                                   while (running) {                      │
+│      lock(mutex)                         lock(mutex)                        │
+│      buffer.push(msg)                    cv.wait(lock, predicate)           │
+│      unlock(mutex)                       msg = buffer.pop()                 │
+│      cv.notify_one()   ─────────────▶    unlock(mutex)                      │
+│      return immediately                  threadPool.submit(write)           │
+│  }                                   }                                      │
+│                                                                             │
+│  Main thread NEVER blocks on I/O!                                           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 🔧 Components
 
-### Policies
+### Telemetry Policies
 
-| Policy | Telemetry | Unit | WARNING | CRITICAL |
-|--------|-----------|------|---------|----------|
-| `CpuPolicy` | CPU Usage | % | 75.0 | 90.0 |
-| `GpuPolicy` | GPU Usage | % | 80.0 | 95.0 |
-| `RamPolicy` | RAM Usage | MB | 70.0 | 85.0 |
+| Policy | Context | Unit | WARNING | CRITICAL |
+|--------|---------|------|---------|----------|
+| `CpuPolicy` | CPU | % | 75.0 | 90.0 |
+| `GpuPolicy` | GPU | % | 80.0 | 95.0 |
+| `RamPolicy` | RAM | MB | 70.0 | 85.0 |
 
 ### Severity Levels
 
@@ -471,14 +669,20 @@ Reuses worker threads to avoid creation overhead:
 | `WARNING` | WARNING < value ≤ CRITICAL | Attention needed |
 | `CRITICAL` | value > CRITICAL | Immediate action required |
 
-### Sinks
+### Data Sources
+
+| Source | Type | Use Case |
+|--------|------|----------|
+| `FileTelemetrySourceImpl` | File | Reading from log files, `/proc/*` |
+| `SocketTelemetrySourceImpl` | Unix Socket | Local IPC |
+| `SomeIPTelemetrySourceAdapter` | Network | Automotive/distributed systems |
+
+### Output Sinks
 
 | Sink | Output | Use Case |
 |------|--------|----------|
 | `ConsoleSinkImpl` | `stdout` | Development, debugging |
-| `FileSinkImpl` | `.log` files | Production logging, audit trails |
-| Future: `NetworkSinkImpl` | TCP/UDP | Remote logging |
-| Future: `DatabaseSinkImpl` | SQL DB | Persistent storage |
+| `FileSinkImpl` | `.log` files | Production logging |
 
 ### Log Message Format
 
@@ -488,398 +692,145 @@ Reuses worker threads to avoid creation overhead:
 
 Example:
 ```
-[2024-01-15 14:30:45] <WARNING> (TelemetryApp - CPU) : CPU usage: 78.500000%
-```
-
----
-
-## 🔄 Thread-Safe Ring Buffer
-
-The system uses a **Thread-Safe Ring Buffer** for efficient message queuing between the main thread and the flushing thread.
-
-### What is a Ring Buffer?
-
-A ring buffer is a fixed-size data structure that wraps around. When full, `try_push()` returns `false` instead of overwriting.
-
-### Visual Representation
-
-```
-RING BUFFER OPERATION (capacity = 5)
-════════════════════════════════════
-
-1. Initial State (empty):
-   ┌───┬───┬───┬───┬───┐
-   │ ○ │ ○ │ ○ │ ○ │ ○ │   head=0, tail=0, count=0
-   └───┴───┴───┴───┴───┘
-     ▲
-   head/tail              ○ = nullopt (empty slot)
-
-2. After try_push(A), try_push(B), try_push(C):
-   ┌───┬───┬───┬───┬───┐
-   │ A │ B │ C │ ○ │ ○ │   head=3, tail=0, count=3
-   └───┴───┴───┴───┴───┘
-     ▲           ▲
-    tail        head
-
-3. After try_pop() returns A:
-   ┌───┬───┬───┬───┬───┐
-   │ ○ │ B │ C │ ○ │ ○ │   head=3, tail=1, count=2
-   └───┴───┴───┴───┴───┘
-         ▲       ▲
-        tail    head
-
-4. Buffer Full - try_push() returns false:
-   ┌───┬───┬───┬───┬───┐
-   │ E │ B │ C │ D │ E │   count=5 (FULL)
-   └───┴───┴───┴───┴───┘
-```
-
-### Why Use Ring Buffer?
-
-| Advantage | Description |
-|-----------|-------------|
-| **Fixed Memory** | Bounded memory usage regardless of log volume |
-| **O(1) Operations** | Constant time push and pop |
-| **Thread-Safe** | Mutex-protected operations |
-| **No Default Constructor** | Uses `std::optional<T>` for storage |
-| **Cache Friendly** | Contiguous memory improves performance |
-
-### Why `std::optional<T>` Storage?
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              std::vector<T> vs std::vector<std::optional<T>>    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  std::vector<T>:                                                │
-│  • Requires T to have default constructor                       │
-│  • Constructs all N objects at initialization                   │
-│  • Cannot distinguish "empty" from "valid"                      │
-│                                                                 │
-│  std::vector<std::optional<T>>:                                 │
-│  • T doesn't need default constructor ✓                         │
-│  • Slots start as nullopt (no construction) ✓                   │
-│  • has_value() clearly shows if slot is used ✓                  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## ⚡ Asynchronous Logging
-
-### The Problem with Synchronous Logging
-
-```
-SYNCHRONOUS (Blocking):
-═══════════════════════
-
-Main Thread: [Read][Format][Log][WAIT FOR I/O...][Read][Format][Log][WAIT...]
-                               ↑
-                        Blocked! Can't do anything else.
-```
-
-### The Solution: Async Logging
-
-```
-ASYNCHRONOUS (Non-Blocking):
-════════════════════════════
-
-Main Thread:     [Read][Format][Push][Read][Format][Push][Read]...
-                              ↓         ↓         ↓
-                         ┌────────────────────────────────┐
-                         │    Thread-Safe Ring Buffer     │
-                         └────────────────────────────────┘
-                              ↓         ↓         ↓
-Worker Thread:           [Pop][Write][Pop][Write][Pop][Write]...
-
-Main thread NEVER waits! Worker handles I/O in background.
-```
-
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    ASYNC LOGGING FLOW                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  MAIN THREAD (Producer):                                        │
-│  ════════════════════════                                       │
-│  1. Format log message                                          │
-│  2. Lock mutex                                                  │
-│  3. Push to ring buffer                                         │
-│  4. Unlock mutex                                                │
-│  5. Notify condition variable                                   │
-│  6. Return immediately ← NON-BLOCKING!                          │
-│                                                                 │
-│  FLUSHING THREAD (Consumer):                                    │
-│  ════════════════════════════                                   │
-│  while (running) {                                              │
-│      1. Lock mutex                                              │
-│      2. Wait on condition variable (sleeps if buffer empty)     │
-│      3. Check exit condition                                    │
-│      4. Unlock mutex                                            │
-│      5. Pop message from buffer                                 │
-│      6. Submit write task to thread pool                        │
-│  }                                                              │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Condition Variable Explained
-
-The condition variable allows the worker thread to sleep efficiently:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                 CONDITION VARIABLE BEHAVIOR                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  cv.wait(lock, predicate):                                      │
-│                                                                 │
-│  1. Check predicate                                             │
-│     └── TRUE  → Continue immediately                            │
-│     └── FALSE → UNLOCK mutex and SLEEP (0% CPU!)                │
-│                                                                 │
-│  2. When notify_one()/notify_all() called:                      │
-│     └── Wake up                                                 │
-│     └── RE-LOCK mutex                                           │
-│     └── Check predicate again                                   │
-│         └── TRUE  → Continue                                    │
-│         └── FALSE → Go back to sleep                            │
-│                                                                 │
-│  KEY: wait() RELEASES mutex while sleeping!                     │
-│       This allows producer to push while consumer sleeps.       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🧵 Thread Pool
-
-### Why Thread Pool?
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              WITHOUT THREAD POOL                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  For each task:                                                 │
-│    CREATE thread (~1ms) → Execute → DESTROY thread (~0.5ms)     │
-│                                                                 │
-│  1000 tasks = 1000 × 1.5ms = 1500ms overhead!                   │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│              WITH THREAD POOL                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Once: CREATE 4 threads (~4ms)                                  │
-│  Per task: Push to queue (~0.001ms)                             │
-│                                                                 │
-│  1000 tasks = 4ms + 1000 × 0.001ms ≈ 5ms overhead!              │
-│                                                                 │
-│  SPEEDUP: 300x faster!                                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Thread Pool Structure
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    THREAD POOL ANATOMY                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌────────────────────────────────────────────────────────┐     │
-│  │                     ThreadPool                          │     │
-│  │                                                        │     │
-│  │  std::vector<std::thread> workers_    // Worker threads│     │
-│  │  std::queue<std::function<void()>> tasks_  // Task queue│    │
-│  │  std::mutex mutex_                    // Protects queue│     │
-│  │  std::condition_variable cv_          // Workers wait  │     │
-│  │  std::atomic<bool> stop_              // Shutdown flag │     │
-│  │                                                        │     │
-│  │  submit(task)   // Add task to queue                   │     │
-│  │  ~ThreadPool()  // Stop workers, join threads          │     │
-│  │                                                        │     │
-│  └────────────────────────────────────────────────────────┘     │
-│                                                                 │
-│  VISUAL:                                                        │
-│                                                                 │
-│      submit(taskA)                                              │
-│      submit(taskB)     ┌─────────────────────────────┐          │
-│      submit(taskC) ───▶│  [taskA][taskB][taskC]      │          │
-│                        └─────────────┬───────────────┘          │
-│                                      │                          │
-│                     ┌────────────────┼────────────────┐         │
-│                     ▼                ▼                ▼         │
-│               ┌──────────┐    ┌──────────┐    ┌──────────┐      │
-│               │ Worker 1 │    │ Worker 2 │    │ Worker 3 │      │
-│               │  taskA   │    │  taskB   │    │  taskC   │      │
-│               └──────────┘    └──────────┘    └──────────┘      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Parallel Sink Writing
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              SEQUENTIAL vs PARALLEL SINK WRITING                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  WITHOUT Thread Pool (Sequential):                              │
-│  ═════════════════════════════════                              │
-│                                                                 │
-│  Worker: [Console 10ms][File 50ms][Network 200ms]               │
-│  Total: 260ms per message                                       │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  WITH Thread Pool (Parallel):                                   │
-│  ═════════════════════════════                                  │
-│                                                                 │
-│  Pool Worker 1: [Console 10ms]                                  │
-│  Pool Worker 2: [File 50ms    ]                                 │
-│  Pool Worker 3: [Network 200ms              ]                   │
-│                                                                 │
-│  Total: max(10, 50, 200) = 200ms per message                    │
-│  SPEEDUP: 23% faster!                                           │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 💻 Usage Examples
-
-### Basic Async Logging
-
-```cpp
-#include "formatter/LogFormatter.hpp"
-#include "formatter/policies/CpuPolicy.hpp"
-#include "logger/LogManager.hpp"
-#include "sinks/LogSinkFactory.hpp"
-
-int main() {
-    // Create formatter
-    LogFormatter<CpuPolicy> formatter("MyApp");
-    
-    // Create LogManager (starts worker thread)
-    LogManager logManager(100, 4);  // 100 buffer, 4 pool threads
-    
-    // Add sinks
-    LogSinkFactory factory;
-    logManager.addSink(factory.CreateSink(SinkConfig::Console()).release());
-    logManager.addSink(factory.CreateSink(SinkConfig::File("app.log")).release());
-    
-    // Log messages (NON-BLOCKING!)
-    for (int i = 0; i < 100; i++) {
-        auto msg = formatter.formatDataToLogMsg(std::to_string(50.0 + i * 0.5));
-        if (msg.has_value()) {
-            logManager.log(msg.value());  // Returns immediately!
-        }
-    }
-    
-    // Destructor handles graceful shutdown
-    return 0;
-}
-```
-
-### Multiple Telemetry Sources
-
-```cpp
-LogFormatter<CpuPolicy> cpuFormatter("Monitor");
-LogFormatter<GpuPolicy> gpuFormatter("Monitor");
-LogFormatter<RamPolicy> ramFormatter("Monitor");
-
-// Same value, different severities based on policy
-auto cpuLog = cpuFormatter.formatDataToLogMsg("77.0");  // WARNING (> 75)
-auto gpuLog = gpuFormatter.formatDataToLogMsg("77.0");  // INFO    (< 80)
-auto ramLog = ramFormatter.formatDataToLogMsg("77.0");  // WARNING (> 70)
-```
-
-### Reading from File Source
-
-```cpp
-#include "sources/FileTelemetrySourceImpl.hpp"
-
-// Create file source
-FileTelemetrySourceImpl source("telemetry_data.txt");
-
-// Read and log
-std::string reading;
-while (source.read(reading)) {
-    auto msg = formatter.formatDataToLogMsg(reading);
-    if (msg.has_value()) {
-        logManager.log(msg.value());
-    }
-}
-```
-
-### Custom Policy
-
-```cpp
-// Create your own policy
-struct NetworkPolicy {
-    static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::NETWORK;
-    static constexpr const char* unit = " Mbps";
-    static constexpr float WARNING = 80.0f;
-    static constexpr float CRITICAL = 95.0f;
-};
-
-// Use it
-LogFormatter<NetworkPolicy> networkFormatter("NetworkMonitor");
+[2024-01-15 14:30:45] <WARNING> (TelemetryApp - CPU) : CPU usage at 78.50% - Approaching high usage
 ```
 
 ---
 
 ## 📈 Phase Development
 
-This project was developed incrementally across four phases:
+This project was developed incrementally across six phases:
 
-### Phase 1: Foundation ✅
-
-| Component | Description |
-|-----------|-------------|
-| Project Structure | Organized directory layout |
-| Enum Definitions | Severity levels, sink types, telemetry sources |
-| Core Interfaces | `ILogSink`, `ITelemetrySource` |
-| RAII Wrappers | `SafeFile`, `SafeSocket` |
-
-### Phase 2: Core Implementation ✅
+### Phase 1: Core Synchronous Logging ✅
 
 | Component | Description |
 |-----------|-------------|
-| Telemetry Sources | File and Socket implementations |
-| Sink Implementations | Console and File sinks |
-| LogMessage | Data class with timestamp |
-| Basic Logging | Synchronous workflow |
+| `ILogSink` Interface | Strategy pattern for output destinations |
+| `ConsoleSinkImpl` | Console output implementation |
+| `FileSinkImpl` | File output implementation |
+| `LogMessage` | Data structure for log entries |
+| `LogManager` | Central logging orchestrator |
 
-### Phase 3: Design Patterns ✅
+**Key Concepts:** Virtual functions, polymorphism, inheritance
+
+### Phase 2: Data Sources & RAII ✅
 
 | Component | Description |
 |-----------|-------------|
-| Policy-Based Design | Template threshold configuration |
-| LogFormatter | Generic formatter with policies |
-| Factory Pattern | `LogSinkFactory` |
-| Builder Pattern | `LogManagerBuilder` |
-| Ring Buffer | Basic circular buffer |
+| `ITelemetrySource` | Interface for data sources |
+| `FileTelemetrySourceImpl` | File-based telemetry |
+| `SocketTelemetrySourceImpl` | Unix socket telemetry |
+| `SafeFile` | RAII wrapper for file descriptors |
+| `SafeSocket` | RAII wrapper for socket descriptors |
+
+**Key Concepts:** RAII, move semantics, Rule of 5
+
+### Phase 3: Policy-Based Design ✅
+
+| Component | Description |
+|-----------|-------------|
+| `CpuPolicy`, `GpuPolicy`, `RamPolicy` | Threshold policies |
+| `LogFormatter<Policy>` | Template-based formatter |
+| `LogSinkFactory` | Factory pattern for sinks |
+| `LogManagerBuilder` | Builder pattern for configuration |
+| `RingBuffer` | Basic circular buffer |
+
+**Key Concepts:** Templates, policy-based design, factory/builder patterns
 
 ### Phase 4: Asynchronous Logging ✅
 
 | Component | Description |
 |-----------|-------------|
-| Thread-Safe Ring Buffer | Mutex-protected with `std::optional<T>` |
+| Thread-Safe `RingBuffer` | Mutex-protected circular buffer |
+| `ThreadPool` | Worker thread management |
+| Async `LogManager` | Non-blocking logging |
 | Condition Variables | Efficient thread synchronization |
-| Async LogManager | Non-blocking log operations |
-| Thread Pool | Parallel sink writing |
-| Graceful Shutdown | Clean resource cleanup |
+
+**Key Concepts:** Multithreading, condition variables, producer-consumer
+
+### Phase 5: SOME/IP Network Telemetry ✅
+
+| Component | Description |
+|-----------|-------------|
+| `SomeIPTelemetrySourceImpl` | Singleton SOME/IP client |
+| `SomeIPTelemetrySourceAdapter` | Adapter to `ITelemetrySource` |
+| `TelemetryServiceImpl` | SOME/IP server implementation |
+| Franca IDL | Interface definition |
+| CommonAPI/vsomeip | Middleware integration |
+
+**Key Concepts:** Singleton, adapter pattern, SOME/IP, code generation
+
+### Phase 6: System Wrap-Up ✅
+
+| Component | Description |
+|-----------|-------------|
+| `TelemetryApp` | Façade class |
+| `AppConfig` | Configuration structures |
+| JSON Configuration | Runtime configuration |
+| Signal Handling | Graceful shutdown (Ctrl+C) |
+| Rate Limiting | Configurable polling rates |
+
+**Key Concepts:** Façade pattern, JSON parsing, signal handling
 
 ---
 
 ## 📚 API Reference
+
+### TelemetryApp (Façade)
+
+```cpp
+namespace telemetry {
+
+class TelemetryApp {
+public:
+    // Construct from JSON file
+    explicit TelemetryApp(const std::string& configPath);
+    
+    // Construct from config struct
+    explicit TelemetryApp(const AppConfig& config);
+    
+    ~TelemetryApp();
+    
+    void start();           // Blocking - runs until stop() or Ctrl+C
+    void stop();            // Signal to stop
+    bool isRunning() const; // Check if running
+    
+    // Non-copyable
+    TelemetryApp(const TelemetryApp&) = delete;
+    TelemetryApp& operator=(const TelemetryApp&) = delete;
+};
+
+} // namespace telemetry
+```
+
+### LogManager
+
+```cpp
+class LogManager {
+public:
+    explicit LogManager(size_t bufferCapacity, size_t poolSize = 4);
+    ~LogManager();  // Handles graceful shutdown
+    
+    void addSink(ILogSink* sink);      // LogManager takes ownership
+    void removeSink(ILogSink* sink);
+    void log(const LogMessage& msg);   // Non-blocking!
+    
+    void DeleteAllSinks();
+    void DeleteAllLogMessages();
+};
+```
+
+### LogFormatter\<Policy\>
+
+```cpp
+template <typename PolicyType>
+class LogFormatter {
+public:
+    explicit LogFormatter(const std::string& appName);
+    
+    std::optional<LogMessage> formatDataToLogMsg(const std::string& rawData);
+};
+```
 
 ### RingBuffer\<T\>
 
@@ -906,58 +857,9 @@ public:
 class ThreadPool {
 public:
     explicit ThreadPool(size_t numThreads);
-    ~ThreadPool();
+    ~ThreadPool();  // Stops all workers
     
     void submit(std::function<void()> task);
-};
-```
-
-### LogManager
-
-```cpp
-class LogManager {
-public:
-    explicit LogManager(size_t bufferCapacity, size_t poolSize = 4);
-    ~LogManager();
-    
-    void addSink(ILogSink* sink);
-    void removeSink(ILogSink* sink);
-    void log(const LogMessage& message);  // Non-blocking!
-    
-    void DeleteAllSinks();
-    void DeleteAllLogMessages();
-};
-```
-
-### LogFormatter\<PolicyType\>
-
-```cpp
-template <typename PolicyType>
-class LogFormatter {
-public:
-    LogFormatter(const std::string& appName);
-    std::optional<LogMessage> formatDataToLogMsg(const std::string& raw);
-};
-```
-
-### LogSinkFactory
-
-```cpp
-class LogSinkFactory {
-public:
-    std::unique_ptr<ILogSink> CreateSink(const SinkConfig& config);
-};
-```
-
-### SinkConfig
-
-```cpp
-struct SinkConfig {
-    SinkType type;
-    std::string filePath;
-    
-    static SinkConfig Console();
-    static SinkConfig File(const std::string& path);
 };
 ```
 
@@ -965,39 +867,61 @@ struct SinkConfig {
 
 ## ⚡ Performance
 
-### Synchronous vs Asynchronous Comparison
+### Synchronous vs Asynchronous
 
 | Metric | Synchronous | Asynchronous |
 |--------|-------------|--------------|
-| Main Thread Blocking | Yes | No |
-| Sink Writing | Sequential | Parallel |
-| Memory Usage | Unbounded | Bounded (ring buffer) |
-| Throughput | Limited by slowest sink | Limited by fastest producer |
-| Latency | High (waits for I/O) | Low (returns immediately) |
+| Main Thread Blocking | Yes | **No** |
+| Sink Writing | Sequential | **Parallel** |
+| Memory Usage | Unbounded | **Bounded** |
+| Log Call Latency | High (I/O wait) | **~0.01ms** |
+| Throughput | Limited by slowest sink | **Limited by producer** |
 
-### Performance Gains
+### Performance Visualization
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                 PERFORMANCE COMPARISON                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  SYNCHRONOUS (Phase 3):                                         │
-│  Main: [Read][Format][Log][WAIT 260ms][Read][Format]...         │
-│  Time per message: 260ms                                        │
-│                                                                 │
-│  ASYNCHRONOUS (Phase 4):                                        │
-│  Main:   [Read][Format][Push][Read][Format][Push]...            │
-│  Worker:           [Pop][Submit to Pool]                        │
-│  Pool:                  [Parallel sink writing]                 │
-│                                                                 │
-│  Main thread time: ~0.01ms (just push to buffer)                │
-│  Sink writing: ~200ms (parallel, not 260ms sequential)          │
-│                                                                 │
-│  IMPROVEMENT: Main thread 26,000x faster!                       │
-│               Sink writing 23% faster!                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      PERFORMANCE COMPARISON                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  SYNCHRONOUS:                                                               │
+│  Main: [Read][Format][Log][===WAIT 260ms===][Read][Format][Log][===WAIT===] │
+│                           ↑                                                 │
+│                      Blocked on I/O!                                        │
+│                                                                             │
+│  ASYNCHRONOUS:                                                              │
+│  Main:   [Read][Format][Push][Read][Format][Push][Read][Format][Push]...    │
+│                         │          │          │                             │
+│                      ~0.01ms each (just buffer push)                        │
+│                         ↓          ↓          ↓                             │
+│  Worker:           [Pop+Write][Pop+Write][Pop+Write]...                     │
+│                                                                             │
+│  IMPROVEMENT: Main thread 26,000x faster per log call!                      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Cannot open config file" | File path incorrect | Check path exists |
+| "Failed to open source" | File/socket doesn't exist | Create test files or start socket server |
+| "SOME/IP not enabled" | Built without flag | Rebuild with `-DENABLE_SOMEIP=ON` |
+| "Service not available" | SOME/IP server not running | Start server before client |
+| App doesn't stop | Signal handler issue | Use Ctrl+C or call `stop()` |
+| High CPU usage | Rate too low | Increase `rateMs` (minimum 100ms) |
+
+### Debug Mode
+
+```bash
+# Enable verbose vsomeip logging
+export VSOMEIP_CONFIGURATION=./config/vsomeip-local.json
+# Edit vsomeip-local.json: "level": "debug"
 ```
 
 ---
@@ -1018,17 +942,7 @@ Contributions are welcome! Please follow these steps:
 - Follow existing code formatting
 - Add comments for complex logic
 - Update documentation for API changes
-
-### Commit Messages
-
-```
-type(scope): description
-
-[optional body]
-```
-
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
-
+- Write unit tests for new features
 
 ---
 
@@ -1036,20 +950,51 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 **Eng. Mohamed Gamal**
 
+- GitHub: [@MG-Codeflare](https://github.com/yourusername)
+- LinkedIn: [Mohamed Gamal](https://linkedin.com/in/yourprofile)
+
 ---
 
 ## 🙏 Acknowledgments
 
-- Modern C++ Design by Andrei Alexandrescu (Policy-Based Design)
-- C++ Concurrency in Action by Anthony Williams (Threading)
-- Design Patterns: Elements of Reusable Object-Oriented Software (GoF Patterns)
+- **Modern C++ Design** by Andrei Alexandrescu (Policy-Based Design)
+- **C++ Concurrency in Action** by Anthony Williams (Threading patterns)
+- **Design Patterns: Elements of Reusable Object-Oriented Software** (GoF)
+- **COVESA** for vsomeip and CommonAPI
+- **nlohmann** for the excellent JSON library
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
+### 🎉 Project Complete!
+
+```
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║          TELEMETRY AND LOGGING SYSTEM                             ║
+║                                                                   ║
+║   ✓ Phase 1: Core Synchronous Logging                             ║
+║   ✓ Phase 2: Data Sources & RAII                                  ║
+║   ✓ Phase 3: Policy-Based Design                                  ║
+║   ✓ Phase 4: Asynchronous Logging                                 ║
+║   ✓ Phase 5: SOME/IP Network Telemetry                            ║
+║   ✓ Phase 6: Façade & JSON Configuration                          ║
+║                                                                   ║
+║   Usage: TelemetryApp app("config.json");                         ║
+║          app.start();                                             ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+```
+
 **⭐ Star this repository if you find it helpful! ⭐**
 
-Built with ❤️ and Modern C++
+Built with ❤️ and Modern C++17
 
 </div>
