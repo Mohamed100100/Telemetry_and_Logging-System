@@ -28,9 +28,13 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/utils
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/services
                  ${CMAKE_BINARY_DIR}/server_build)
 
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/app 
+                 ${CMAKE_BINARY_DIR}/app_build)
+
+
 add_executable(${PROJECT_NAME} ${App_Source_File})
 
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../include/ PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../third_party/)
-target_link_libraries(${PROJECT_NAME} raii logger sinks sources formatter utils)
+target_link_libraries(${PROJECT_NAME} raii logger sinks sources formatter utils app)
 
