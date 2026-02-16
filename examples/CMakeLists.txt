@@ -25,6 +25,9 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/formatter
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/utils
                  ${CMAKE_BINARY_DIR}/utils_build)
 
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../src/services
+                 ${CMAKE_BINARY_DIR}/server_build)
+
 add_executable(${PROJECT_NAME} ${App_Source_File})
 
 
