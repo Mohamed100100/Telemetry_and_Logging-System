@@ -17,7 +17,7 @@ bool FileTelemetrySourceImpl::readSource(std::string &RefRead){
     if(_safeFilePtr != nullptr){
         if(_safeFilePtr->IsOpen() == true){
             RefRead = _safeFilePtr->Read();
-            ReturnState = true;
+            ReturnState = !RefRead.empty();
         }else{
             ReturnState = false;
         }
