@@ -21,6 +21,6 @@ class FileSinkImpl : public ILogSink{
 
         virtual void write(const LogMessage &log_message);
 
-        virtual ~FileSinkImpl() = default;
+        virtual ~FileSinkImpl() override = default;
 };
 

@@ -13,5 +13,5 @@ class ConsoleSinkImpl : public ILogSink{
 
         virtual void write(const LogMessage &log_message);
 
-        virtual ~ConsoleSinkImpl() = default;
+        virtual ~ConsoleSinkImpl() override = default;
 };
