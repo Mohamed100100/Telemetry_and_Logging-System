@@ -1,0 +1,31 @@
+{
+    "unicast" : "127.0.0.1",
+    "logging" : {
+        "level" : "fatal",
+        "console" : "false"
+    },
+    "applications" : [
+        {
+            "name" : "server",
+            "id" : "0x1277"
+        },
+        {
+            "name" : "client", 
+            "id" : "0x1255"
+        }
+    ],
+    "services" : [
+        {
+            "service" : "0x4666",
+            "instance" : "0x01",
+            "unreliable" : "30502"
+        }
+    ],
+    "routing" : "server",
+    "service-discovery" : {
+        "enable" : "true",
+        "multicast" : "224.224.224.245",
+        "port" : "30490",
+        "protocol" : "udp"
+    }
+}
