@@ -1,0 +1,36 @@
+to run it locally with cli:
+>> in client
+cmake -S ./examples -B build -DApp_Source_File=phase6_demo.cpp -DENABLE_SOMEIP=ON
+cmake --build build
+export COMMONAPI_CONFIG=$(pwd)/config/commonapi.ini
+export VSOMEIP_APPLICATION_NAME=client
+export VSOMEIP_CONFIGURATION=$(pwd)/config/vsomeip-local.json
+==============================================================================
+cmake -S ./examples -B build -DApp_Source_File=phase6_demo.cpp -DBUILD_FOR_RPI=ON -DENABLE_SOMEIP=ON
+__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia glmark2
+./scripts/gpu_logger.sh
+./scripts/socket_server.sh
+./scripts/cpu_logger.sh
+./build/server_build/ServerSomeIp
+==============================================================================
+cmake -S gui -B gui/build -DENABLE_SOMEIP=ON
+cmake --build gui/build/
+./gui/build/bin/TelemetryGUI
+
+./gui/build/server/ServerSomeIp
+__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia glmark2
+./scripts/gpu_logger.sh
+./scripts/cpu_logger.sh
+==============================================================================
+export VSOMEIP_CONFIGURATION=$(pwd)/vsomeip-server.json
+export COMMONAPI_CONFIG=$(pwd)/commonapi.ini
+export VSOMEIP_APPLICATION_NAME=server
+sudo ip route add 224.224.224.245/32 dev eno1
+---
+ssh pi@10.42.0.73
+export VSOMEIP_CONFIGURATION=$(pwd)/config/vsomeip-client.json
+export COMMONAPI_CONFIG=$(pwd)/commonapi.ini
+export VSOMEIP_APPLICATION_NAME=client
+
+
+
