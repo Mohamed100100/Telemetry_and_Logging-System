@@ -1,0 +1,18 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>styles/dark_theme.qss</file>
+        <file>icons/app_icon.png</file>
+        <file>icons/start.png</file>
+        <file>icons/stop.png</file>
+        <file>icons/settings.png</file>
+        <file>icons/clear.png</file>
+        <file>icons/save.png</file>
+        <file>icons/cpu.png</file>
+        <file>icons/gpu.png</file>
+        <file>icons/ram.png</file>
+        <file>icons/dashboard.png</file>
+        <file>icons/chart.png</file>
+        <file>icons/log.png</file>
+    </qresource>
+</RCC>
