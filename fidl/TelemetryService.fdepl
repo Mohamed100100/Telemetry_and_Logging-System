@@ -10,7 +10,6 @@ define org.genivi.commonapi.someip.deployment for interface log.TelemetryService
     }
 }
 
-
 define org.genivi.commonapi.someip.deployment for provider as MyService {
 
     instance log.TelemetryService {
@@ -18,9 +17,9 @@ define org.genivi.commonapi.someip.deployment for provider as MyService {
 
         SomeIpInstanceID = 0x01
 
-        // Network configuration
-        SomeIpUnicastAddress = "127.0.0.1"
-        SomeIpReliableUnicastPort = 30501      // TCP port
-        SomeIpUnreliableUnicastPort = 30502    // UDP port
+        // RPi's IP address
+        SomeIpUnicastAddress = "10.42.0.73"
+        SomeIpReliableUnicastPort = 30501
+        SomeIpUnreliableUnicastPort = 30502
     }
 }
