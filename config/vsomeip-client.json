@@ -1,0 +1,47 @@
+{
+    "unicast" : "10.42.0.1",
+    "netmask" : "255.255.255.0",
+    "logging" : {
+        "level" : "none",
+        "console" : "false",
+        "dlt" : "false"
+    },
+    "applications" : [
+        {
+            "name" : "client",
+            "id" : "0x1255"
+        }
+    ],
+    "clients" : [
+        {
+            "service" : "0x4666",
+            "instance" : "0x0001",
+            "unreliable" : [40000, 40100],
+            "reliable" : [41000, 41100]
+        }
+    ],
+    "routing" : "client",
+    "service-discovery" : {
+        "enable" : "true",
+        "multicast" : "224.224.224.245",
+        "port" : "30490",
+        "protocol" : "udp",
+        "initial_delay_min" : "10",
+        "initial_delay_max" : "100",
+        "repetitions_base_delay" : "200",
+        "repetitions_max" : "3",
+        "ttl" : "3"
+    },
+    "services" : [
+        {
+            "service" : "0x4666",
+            "instance" : "0x0001",
+            "unicast" : "10.42.0.73",
+            "unreliable" : "30502",
+            "reliable" : {
+                "port" : "30501",
+                "enable-magic-cookies" : "false"
+            }
+        }
+    ]
+}
